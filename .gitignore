@@ -1,0 +1,29 @@
+# Binaries
+/tea-eyes
+/dist/
+*.exe
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# Editor / OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# tea-eyes build/test artifacts
+*.tape
+test/golden/*.actual
+
+# VHS / render outputs in test/example trees
+test/**/*.gif
+test/**/*.png
+examples/**/*.gif
+examples/**/*.png
+
+# Render + harness caches (when run outside XDG_CACHE_HOME)
+.cache/

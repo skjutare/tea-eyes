@@ -1,0 +1,31 @@
+tea-eyes
+Copyright (c) 2026 Christoffer Skjutare
+
+This product builds on, extends, or pays homage to the following projects.
+All are independently licensed; see each project's repository for terms.
+
+Charm ecosystem (MIT)
+  Bubble Tea, Lipgloss, Bubbles, VHS, teatest, and friends.
+  https://charm.sh
+
+mark3labs/mcp-go (MIT)
+  Go SDK for the Model Context Protocol — used as the MCP server framework.
+  https://github.com/mark3labs/mcp-go
+
+GGPrompts / TFE bubbletea Claude Code skill
+  Encodes Bubble Tea layout best practices (the "4 Golden Rules").
+  tea-eyes defers all layout guidance to this skill.
+
+jmlago "Debug TUIs with tmux" Claude Code skill
+  The original tmux-driven TUI inspection workflow that inspired the
+  tea-eyes tmux driver.
+
+rigerc/bubbletea-v2-scaffold
+  Bubble Tea v2 project scaffold; composes with tea-eyes.
+
+Hatchet — "Building a TUI is easy now"
+  Validated the Claude + tmux + Bubble Tea workflow that tea-eyes packages
+  as a first-class MCP server.
+
+The author thanks all of the above. Any errors, omissions, or design
+decisions in tea-eyes are the author's alone.
