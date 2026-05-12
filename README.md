@@ -35,10 +35,28 @@ Code + tmux + Bubble Tea is genuinely productive. Skills like jmlago's
 tea-eyes formalizes the same pattern as a first-class MCP server with a
 typed tool surface and three capture strategies instead of one.
 
+## Quickstart
+
+Phase 1 ships a working MCP server with one tool, `tui_capture_text`.
+
+```sh
+# build the server and the example TUI
+make build
+go build -o ./bin/hello-tui ./examples/hello-tui
+
+# wire the server into Claude Code as an MCP server
+claude mcp add tea-eyes -- ./tea-eyes
+```
+
+Then ask Claude something like _"capture what `./bin/hello-tui` renders at
+40×8"_. Under the hood Claude calls `tui_capture_text` and gets back a clean
+text grid. See [`docs/mcp-tools.md`](docs/mcp-tools.md) for the full tool
+reference.
+
 ## Status / Roadmap
 
 - [x] Phase 0 — Bootstrap (repo skeleton, license, CI)
-- [ ] Phase 1 — MCP server + pty driver + `tui_capture_text`
+- [x] Phase 1 — MCP server + pty driver + `tui_capture_text`
 - [ ] Phase 2 — VHS image rendering + `tui_render_image`
 - [ ] Phase 3 — teatest harness + `tui_test_golden` + `tui_inspect_model`
 - [ ] Phase 4 — Skills + plugin manifest
