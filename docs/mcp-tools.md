@@ -5,7 +5,7 @@ Each tool is documented here as it lands.
 | Tool | Status | Lands in |
 |------|--------|----------|
 | `tui_capture_text` | available | Phase 1 |
-| `tui_render_image` | not yet | Phase 2 |
+| `tui_render_image` | available | Phase 2 |
 | `tui_test_golden` | not yet | Phase 3 |
 | `tui_inspect_model` | not yet | Phase 3 |
 | `tui_session_attach_hint` | not yet | Phase 6 |
@@ -87,5 +87,94 @@ Quit a TUI cleanly (the tool returns the rendered text up to the quit):
 {
   "command": "./examples/hello-tui",
   "keys": ["q"]
+}
+```
+
+---
+
+## `tui_render_image`
+
+Render a TUI command as a PNG or GIF using [Charm's VHS](https://github.com/charmbracelet/vhs)
+and return the image to the model as an MCP image content block. Use this
+when text capture isn't enough — to judge colour, spacing, borders, focus
+rings, or typography.
+
+External dependencies: `vhs`, `ttyd`, `ffmpeg`. Run `tea-eyes doctor` to
+verify they're on `PATH`.
+
+### Inputs
+
+| name | type | required | default | description |
+|------|------|----------|---------|-------------|
+| `command` | string | yes | — | Binary path or command on `PATH` to run. |
+| `args` | string[] | no | `[]` | Arguments to pass to the command. |
+| `keys` | string[] | no | `[]` | Key sequence to send after spawn (same notation as `tui_capture_text`). |
+| `width` | int | no | `80` | Terminal width in columns. |
+| `height` | int | no | `24` | Terminal height in rows. |
+| `font_family` | string | no | `"JetBrains Mono"` | Monospace font name installed locally. |
+| `font_size` | int | no | `14` | Font size in points. |
+| `theme` | string | no | `"Dracula"` | VHS theme (see `vhs themes`). |
+| `format` | enum | no | `"png"` | `"png"` (still frame) or `"gif"` (whole session). |
+| `padding` | int | no | `20` | Pixel padding around the terminal. |
+| `settle_ms` | int | no | `300` | Milliseconds to wait between key sends. |
+| `no_cache` | bool | no | `false` | Bypass the on-disk render cache. |
+| `cwd` | string | no | `""` | Working directory for the spawned command. |
+
+### Caching
+
+Renders are cached under `$XDG_CACHE_HOME/tea-eyes/renders/` (or
+`~/.cache/tea-eyes/renders/`) keyed by a SHA-256 of the canonicalized
+inputs. Each entry is the image plus a sibling `.tape` file for debugging.
+The cache is opportunistic — there is no staleness check; run
+`tea-eyes cache clean` to clear it.
+
+### Output
+
+An MCP image content block plus structured metadata:
+
+```json
+{
+  "format": "png",
+  "width": 80,
+  "height": 24,
+  "mime": "image/png",
+  "bytes": 18432,
+  "cache_hit": false,
+  "cache_path": "/Users/me/.cache/tea-eyes/renders/abc123.png"
+}
+```
+
+### Examples
+
+Render the first frame of a Bubble Tea binary:
+
+```json
+{
+  "command": "./examples/multi-pane",
+  "width": 80,
+  "height": 24
+}
+```
+
+Animate a key sequence as a GIF:
+
+```json
+{
+  "command": "./examples/multi-pane",
+  "keys": ["tab", "tab", "q"],
+  "format": "gif",
+  "settle_ms": 400
+}
+```
+
+Render with a custom font and theme:
+
+```json
+{
+  "command": "./examples/hello-tui",
+  "keys": ["space"],
+  "font_family": "Fira Code",
+  "font_size": 16,
+  "theme": "GitHub Dark"
 }
 ```

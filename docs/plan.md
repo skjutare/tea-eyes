@@ -2,8 +2,8 @@
 
 **Author:** Christoffer Skjutare
 **License:** MIT (matching the Charm ecosystem)
-**Status:** Planning → Phase 0 not yet started
-**Last updated:** 2026-05-09
+**Status:** Phases 0–2 complete; Phase 3 (teatest) up next
+**Last updated:** 2026-05-12
 
 This is the single-source-of-truth plan for building **tea-eyes**, a Claude
 Code plugin that gives Claude visual feedback when developing terminal user
@@ -206,9 +206,9 @@ tea-eyes/
 
 | # | Name | Goal | Effort | Exit state |
 |---|------|------|--------|-----------|
-| 0 | Bootstrap | Repo skeleton, license, CI, docs placeholders | ½ day | Empty but well-formed repo, CI green |
-| 1 | MCP + pty | Server skeleton, key parser, pty driver, `tui_capture_text` | 1–2 days | Claude can capture hello-tui as text |
-| 2 | VHS render | `tui_render_image`, caching, `tea-eyes doctor` | 1–2 days | Claude can see the TUI as PNG |
+| 0 | Bootstrap ✅ | Repo skeleton, license, CI, docs placeholders | ½ day | Empty but well-formed repo, CI green |
+| 1 | MCP + pty ✅ | Server skeleton, key parser, pty driver, `tui_capture_text` | 1–2 days | Claude can capture hello-tui as text |
+| 2 | VHS render ✅ | `tui_render_image`, caching, `tea-eyes doctor` | 1–2 days | Claude can see the TUI as PNG |
 | 3 | teatest | `tui_test_golden`, `tui_inspect_model`, white-box pattern | 1–2 days | Claude can write & run golden tests |
 | 4 | Skills | Two SKILL.md files, plugin manifest, GGPrompts compat doc | ½–1 day | Claude auto-triggers tea-eyes appropriately |
 | 5 | Subagents | `tui-designer`, `tui-tester`, agents documentation | ½ day | Named subagents work end-to-end |

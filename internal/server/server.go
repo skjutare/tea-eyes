@@ -11,6 +11,7 @@ import (
 	"gitlab.com/skjutare/tea-eyes/internal/capture"
 	"gitlab.com/skjutare/tea-eyes/internal/keys"
 	"gitlab.com/skjutare/tea-eyes/internal/pty"
+	"gitlab.com/skjutare/tea-eyes/internal/render"
 )
 
 // Version is the server version reported during MCP initialize. Overridable
@@ -25,8 +26,15 @@ type CaptureTextResult struct {
 	RawBytes int    `json:"raw_bytes"`
 }
 
-// New builds a fully-configured MCP server with all tea-eyes tools registered.
+// New builds a fully-configured MCP server with all tea-eyes tools registered,
+// using the default render cache directory.
 func New() *server.MCPServer {
+	return NewWithRenderer(render.NewRenderer(""))
+}
+
+// NewWithRenderer is like New but allows callers (mainly tests) to supply a
+// pre-configured Renderer — e.g. with a custom cache directory.
+func NewWithRenderer(r *render.Renderer) *server.MCPServer {
 	s := server.NewMCPServer(
 		"tea-eyes",
 		Version,
@@ -34,6 +42,7 @@ func New() *server.MCPServer {
 		server.WithRecovery(),
 	)
 	registerCaptureText(s, pty.New())
+	registerRenderImage(s, r)
 	return s
 }
 

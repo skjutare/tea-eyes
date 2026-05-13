@@ -37,27 +37,54 @@ typed tool surface and three capture strategies instead of one.
 
 ## Quickstart
 
-Phase 1 ships a working MCP server with one tool, `tui_capture_text`.
+Phase 1 + 2 ship a working MCP server with two tools: `tui_capture_text`
+(fast ASCII) and `tui_render_image` (true-pixel PNG/GIF via VHS).
 
 ```sh
-# build the server and the example TUI
+# build the server and the example TUIs
 make build
-go build -o ./bin/hello-tui ./examples/hello-tui
+go build -o ./bin/hello-tui  ./examples/hello-tui
+go build -o ./bin/multi-pane ./examples/multi-pane
+
+# verify VHS / ttyd / ffmpeg are available
+./tea-eyes doctor
 
 # wire the server into Claude Code as an MCP server
 claude mcp add tea-eyes -- ./tea-eyes
 ```
 
 Then ask Claude something like _"capture what `./bin/hello-tui` renders at
-40×8"_. Under the hood Claude calls `tui_capture_text` and gets back a clean
-text grid. See [`docs/mcp-tools.md`](docs/mcp-tools.md) for the full tool
-reference.
+40×8"_ — Claude calls `tui_capture_text` and gets back a clean text grid.
+
+For visual review, ask _"render `./bin/multi-pane` as a PNG and tell me how
+to balance the two columns"_ — Claude calls `tui_render_image`, receives the
+actual image, and can reason about colour, borders, and spacing:
+
+![multi-pane example](docs/img/multi-pane-demo.png)
+
+`tui_render_image` caches renders under `$XDG_CACHE_HOME/tea-eyes/renders/`
+keyed by the inputs; clear it with `./tea-eyes cache clean`.
+
+See [`docs/mcp-tools.md`](docs/mcp-tools.md) for the full tool reference and
+[`docs/workflow.md`](docs/workflow.md) for the iterative design loop.
+
+### External dependencies
+
+`tui_render_image` shells out to [`vhs`](https://github.com/charmbracelet/vhs),
+which itself requires `ttyd` and `ffmpeg`:
+
+```sh
+brew install vhs ttyd ffmpeg
+# or: go install github.com/charmbracelet/vhs@latest
+```
+
+Run `./tea-eyes doctor` for a health check.
 
 ## Status / Roadmap
 
 - [x] Phase 0 — Bootstrap (repo skeleton, license, CI)
 - [x] Phase 1 — MCP server + pty driver + `tui_capture_text`
-- [ ] Phase 2 — VHS image rendering + `tui_render_image`
+- [x] Phase 2 — VHS image rendering + `tui_render_image`
 - [ ] Phase 3 — teatest harness + `tui_test_golden` + `tui_inspect_model`
 - [ ] Phase 4 — Skills + plugin manifest
 - [ ] Phase 5 — Reference subagents (`tui-designer`, `tui-tester`)

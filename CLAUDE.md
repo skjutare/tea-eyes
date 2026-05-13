@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-**Phase 0 complete.** Repo scaffold, license, CI, and docs skeleton exist; no MCP/TUI code yet. Work proceeds phase-by-phase — do not skip ahead.
+**Phases 0–2 complete.** Repo scaffold, license, CI, MCP server with `tui_capture_text` (pty) and `tui_render_image` (VHS) tools, plus `tea-eyes doctor` and `tea-eyes cache clean` subcommands. Phase 3 (teatest) is up next. Work proceeds phase-by-phase — do not skip ahead.
 
 The authoritative plan is `docs/plan.md`. Per-phase prompts are `docs/build-prompts/phase-{0..7}-*.md`. When the plan and a per-phase prompt disagree, **the per-phase prompt wins** (it's more specific); update `docs/plan.md` to match.
 
