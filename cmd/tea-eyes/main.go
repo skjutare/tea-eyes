@@ -31,23 +31,25 @@ import (
 const exitCodeUsage = 2
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
+	args := os.Args[1:]
+	if len(args) > 0 {
+		switch args[0] {
 		case "doctor":
 			os.Exit(runDoctor())
 		case "cache":
-			os.Exit(runCache(os.Args[2:]))
+			os.Exit(runCache(args[1:]))
+		case "serve":
+			os.Exit(runServer(args[1:]))
 		}
 	}
-	os.Exit(runServer())
+	os.Exit(runServer(args))
 }
 
-func runServer() int {
-	var (
-		showVersion = flag.Bool("version", false, "print version and exit")
-		logFile     = flag.String("log-file", "", "append logs to this file (default: stderr)")
-	)
-	flag.Parse()
+func runServer(args []string) int {
+	fs := flag.NewFlagSet("tea-eyes", flag.ExitOnError)
+	showVersion := fs.Bool("version", false, "print version and exit")
+	logFile := fs.String("log-file", "", "append logs to this file (default: stderr)")
+	_ = fs.Parse(args)
 
 	if *showVersion {
 		fmt.Println("tea-eyes", server.Version)

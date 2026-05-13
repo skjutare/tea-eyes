@@ -1,5 +1,24 @@
 {
-  "$comment": "Populated in Phase 4 — Claude Code plugin manifest.",
   "name": "tea-eyes",
-  "version": "0.0.0"
+  "version": "0.1.0-dev",
+  "description": "Visual feedback loop for TUI development — Playwright for terminals.",
+  "author": {
+    "name": "Christoffer Skjutare"
+  },
+  "license": "MIT",
+  "homepage": "https://gitlab.com/skjutare/tea-eyes",
+  "mcpServers": {
+    "tea-eyes": {
+      "command": "tea-eyes",
+      "args": ["serve"]
+    }
+  },
+  "skills": [
+    "./skills/tea-eyes-loop/SKILL.md",
+    "./skills/tea-eyes-bubbletea/SKILL.md"
+  ],
+  "agents": [
+    "./agents/tui-designer.md",
+    "./agents/tui-tester.md"
+  ]
 }

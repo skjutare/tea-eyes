@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `plugin/skills/tea-eyes-loop/SKILL.md` — framework-agnostic skill that
+  teaches the capture → reason → edit → re-capture loop and when to pick
+  which tea-eyes MCP tool (Phase 4).
+- `plugin/skills/tea-eyes-bubbletea/SKILL.md` — Bubble Tea-specific skill
+  covering the `TeaEyesNewModel` white-box pattern, color-profile
+  discipline for stable goldens, and the teatest workflow. Strictly
+  additive to the GGPrompts/TFE bubbletea skill (Phase 4).
+- `plugin/plugin.json` — Claude Code plugin manifest wiring the
+  stdio-served `tea-eyes` MCP server, both skills, and (forward-referenced)
+  subagent paths.
+- `tea-eyes serve` subcommand — explicit entrypoint for the stdio MCP
+  server; the bare `tea-eyes` invocation still serves for backward compat.
+- `docs/compat-ggprompts.md` — explains how tea-eyes composes with the
+  GGPrompts/TFE bubbletea skill (verifier vs. design rules).
 - `tui_test_golden` MCP tool — drive a Bubble Tea model in-process via
   teatest and compare its final output against a golden file (Phase 3).
 - `tui_inspect_model` MCP tool — drive a Bubble Tea model and return its

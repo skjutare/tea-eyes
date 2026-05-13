@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-**Phases 0–3 complete.** Repo scaffold, license, CI, MCP server with `tui_capture_text` (pty), `tui_render_image` (VHS), `tui_test_golden` and `tui_inspect_model` (teatest white-box) tools, plus `tea-eyes doctor` and `tea-eyes cache clean` subcommands. Phase 4 (skills) is up next. Work proceeds phase-by-phase — do not skip ahead.
+**Phases 0–4 complete.** Repo scaffold, license, CI, MCP server with `tui_capture_text` (pty), `tui_render_image` (VHS), `tui_test_golden` and `tui_inspect_model` (teatest white-box) tools, `tea-eyes doctor`/`cache`/`serve` subcommands, plus the `tea-eyes-loop` and `tea-eyes-bubbletea` skills and plugin manifest. Phase 5 (subagents) is up next. Work proceeds phase-by-phase — do not skip ahead.
 
 The authoritative plan is `docs/plan.md`. Per-phase prompts are `docs/build-prompts/phase-{0..7}-*.md`. When the plan and a per-phase prompt disagree, **the per-phase prompt wins** (it's more specific); update `docs/plan.md` to match.
 
