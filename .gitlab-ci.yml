@@ -35,7 +35,21 @@ build:
 snapshot:
   stage: build
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == "main"
   image: goreleaser/goreleaser:latest
   script:
     - goreleaser release --snapshot --clean
+  artifacts:
+    paths:
+      - dist/
+
+release:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+/
+  image: goreleaser/goreleaser:latest
+  script:
+    - goreleaser release --clean
+  artifacts:
+    paths:
+      - dist/

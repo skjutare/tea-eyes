@@ -1,9 +1,11 @@
-.PHONY: build test test-integration lint tidy snapshot demo-render clean
+.PHONY: build test test-integration lint tidy snapshot release demo-render clean
 
 GOLANGCI_LINT ?= golangci-lint
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+LDFLAGS := -s -w -X gitlab.com/skjutare/tea-eyes/internal/server.Version=$(VERSION)
 
 build:
-	go build ./cmd/tea-eyes
+	go build -ldflags "$(LDFLAGS)" ./cmd/tea-eyes
 
 test:
 	go test ./...
@@ -22,6 +24,10 @@ tidy:
 
 snapshot:
 	goreleaser release --snapshot --clean
+
+# Real release flow run locally. Requires GITHUB_TOKEN / GITLAB_TOKEN env vars.
+release:
+	goreleaser release --clean
 
 # Regenerate the committed demo PNG used in the README. Requires vhs/ttyd/ffmpeg.
 demo-render: build

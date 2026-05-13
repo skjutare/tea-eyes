@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-**Phases 0–4 complete.** Repo scaffold, license, CI, MCP server with `tui_capture_text` (pty), `tui_render_image` (VHS), `tui_test_golden` and `tui_inspect_model` (teatest white-box) tools, `tea-eyes doctor`/`cache`/`serve` subcommands, plus the `tea-eyes-loop` and `tea-eyes-bubbletea` skills and plugin manifest. Phase 5 (subagents) is up next. Work proceeds phase-by-phase — do not skip ahead.
+**Phases 0–7 complete.** Repo scaffold, license, CI; MCP server with `tui_capture_text` (pty + tmux), `tui_render_image` (VHS), `tui_test_golden` and `tui_inspect_model` (teatest white-box), `tui_session_attach_hint`; `tea-eyes doctor`/`cache`/`serve` subcommands; both skills (`tea-eyes-loop`, `tea-eyes-bubbletea`); both subagents (`tui-designer`, `tui-tester`) and plugin manifest; release engineering (`.goreleaser.yaml`, GitHub + GitLab release workflows, ldflags-stamped version); full docs (`architecture.md`, `workflow.md` narrative tutorial, `mcp-tools.md` reference, `agents.md`, `roadmap.md`); submission drafts for the five target directories; launch announcement draft.
+
+**What remains before v0.1.0 ships:** (a) cut the actual `v0.1.0` tag, move `[Unreleased]` → `[0.1.0] - YYYY-MM-DD` in CHANGELOG, push to GitLab so CI publishes artifacts and the mirror picks it up; (b) flip both repos public; (c) re-record the demo PNG/GIF from a real Claude session via `make demo-render`; (d) work through the manual QA pass in `docs/build-prompts/phase-7-release.md` §8; (e) actually submit to the five directories using the drafts in `docs/submissions/`.
 
 The authoritative plan is `docs/plan.md`. Per-phase prompts are `docs/build-prompts/phase-{0..7}-*.md`. When the plan and a per-phase prompt disagree, **the per-phase prompt wins** (it's more specific); update `docs/plan.md` to match.
 

@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  ci:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,5 +14,18 @@ jobs:
         with:
           go-version: "1.26"
           cache: true
-      - run: make lint
-      - run: make test
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build ./cmd/tea-eyes
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.0.2

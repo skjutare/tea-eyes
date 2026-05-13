@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `docs/architecture.md` — full rewrite with a Mermaid component diagram,
+  per-package responsibility table, the five non-negotiable design
+  contracts (actionable errors, white-box pattern, color-profile
+  discipline, content-addressed caching, no telemetry), the concurrency
+  model, and four extension points (driver, render backend, framework
+  plugin, new MCP tool) (Phase 7).
+- `docs/workflow.md` — start-to-finish narrative tutorial: setup,
+  bootstrap, design pass with `tui-designer`, golden test with
+  `tui-tester`, watching via tmux, composing with the GGPrompts/TFE
+  bubbletea skill (Phase 7).
+- `docs/roadmap.md` — v0.1 done list, v0.2 framework plugins, v0.3
+  visual diffing, v0.4 record-and-replay, v1.0 stability criteria,
+  permanent non-goals (Phase 7).
+- `docs/announcement-draft.md` — launch post mirroring Hatchet's framing,
+  ready to publish after the release tag is cut (Phase 7).
+- `docs/submissions/` — copy-paste-ready submission drafts for
+  mcpmarket, claude-plugins.dev, fastmcp.me, smithery.ai, and
+  mcp.directory (Phase 7).
+- `.goreleaser.yaml` — cross-platform release config: linux/darwin/windows
+  × amd64/arm64 (windows/arm64 skipped), tar.gz/zip archives bundling
+  `plugin/`, SHA-256 checksums, version injected via ldflags into
+  `internal/server.Version` (Phase 7).
+- `.github/workflows/ci.yml` and `.github/workflows/release.yml` —
+  GitHub Actions mirrors of the GitLab pipeline; the release workflow
+  runs goreleaser on `v*` tag pushes (Phase 7).
+- `.gitlab-ci.yml` — adds a `release` job that runs `goreleaser release`
+  (not snapshot) on `v*` tag pushes; the existing snapshot job is
+  re-scoped to main-branch builds for artifact preview (Phase 7).
+- `Makefile` — `VERSION` / `LDFLAGS` macros so local `make build` stamps
+  `internal/server.Version` from `git describe`; new `release` target
+  for running goreleaser locally with the necessary tokens (Phase 7).
+- README rewritten for the v0.1.0 launch: status bumped to **beta**,
+  banner image moved to the top, install / quickstart / subagents /
+  skills / MCP tools sections all rewritten as scannable tables, full
+  prior-art credit list (Phase 7).
+
 - `internal/tmux` package — tmux CLI wrapper supporting create/attach/kill
   session, raw-byte key delivery via `send-keys -H`, `capture-pane -e`,
   resize, and `respawn-pane` for reusing a persistent session across

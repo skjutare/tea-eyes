@@ -2,8 +2,8 @@
 
 **Author:** Christoffer Skjutare
 **License:** MIT (matching the Charm ecosystem)
-**Status:** Phases 0–2 complete; Phase 3 (teatest) up next
-**Last updated:** 2026-05-12
+**Status:** Phases 0–7 complete; v0.1.0 tag and public flip remain (manual user actions)
+**Last updated:** 2026-05-13
 
 This is the single-source-of-truth plan for building **tea-eyes**, a Claude
 Code plugin that gives Claude visual feedback when developing terminal user
