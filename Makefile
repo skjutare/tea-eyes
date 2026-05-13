@@ -1,6 +1,6 @@
 .PHONY: build test test-integration lint tidy snapshot demo-render clean
 
-STATICCHECK ?= go run honnef.co/go/tools/cmd/staticcheck@latest
+GOLANGCI_LINT ?= golangci-lint
 
 build:
 	go build ./cmd/tea-eyes
@@ -14,8 +14,8 @@ test-integration:
 	go test -tags=integration ./test/integration/...
 
 lint:
-	go vet ./...
-	$(STATICCHECK) ./...
+	$(GOLANGCI_LINT) fmt
+	$(GOLANGCI_LINT) run --fix
 
 tidy:
 	go mod tidy
