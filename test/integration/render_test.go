@@ -52,7 +52,12 @@ func newRenderClient(t *testing.T, cacheDir string) (*client.Client, context.Con
 	return c, ctx, cancel
 }
 
-func callRender(t *testing.T, c *client.Client, ctx context.Context, args map[string]any) (imgBytes []byte, meta map[string]any) {
+func callRender(
+	t *testing.T,
+	c *client.Client,
+	ctx context.Context,
+	args map[string]any,
+) (imgBytes []byte, meta map[string]any) {
 	t.Helper()
 	req := mcp.CallToolRequest{}
 	req.Params.Name = "tui_render_image"

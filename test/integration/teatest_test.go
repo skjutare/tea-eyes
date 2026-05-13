@@ -12,7 +12,13 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-func callTool(t *testing.T, c *client.Client, ctx context.Context, name string, args map[string]any) (raw map[string]any, isErr bool, errMsg string) {
+func callTool(
+	t *testing.T,
+	c *client.Client,
+	ctx context.Context,
+	name string,
+	args map[string]any,
+) (raw map[string]any, isErr bool, errMsg string) {
 	t.Helper()
 	req := mcp.CallToolRequest{}
 	req.Params.Name = name
@@ -22,11 +28,13 @@ func callTool(t *testing.T, c *client.Client, ctx context.Context, name string, 
 		t.Fatalf("%s call: %v", name, err)
 	}
 	if res.IsError {
+		var errMsgSb25 strings.Builder
 		for _, ct := range res.Content {
 			if tc, ok := ct.(mcp.TextContent); ok {
-				errMsg += tc.Text
+				errMsgSb25.WriteString(tc.Text)
 			}
 		}
+		errMsg += errMsgSb25.String()
 		return nil, true, errMsg
 	}
 	if res.StructuredContent != nil {

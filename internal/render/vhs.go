@@ -1,5 +1,5 @@
 // Package render wraps Charm's VHS to produce PNG/GIF screenshots of a TUI
-// session. The renderer generates a .tape file from a RenderOpts spec, runs
+// session. The renderer generates a .tape file from an [Opts] spec, runs
 // the vhs binary, and returns the resulting image bytes. Results are cached
 // under $XDG_CACHE_HOME/tea-eyes/renders/ keyed by a SHA-256 of the inputs.
 package render
@@ -17,8 +17,8 @@ import (
 	"strings"
 )
 
-// RenderOpts describes a single VHS render request.
-type RenderOpts struct {
+// Opts describes a single VHS render request.
+type Opts struct {
 	Command    string   `json:"command"`
 	Args       []string `json:"args,omitempty"`
 	Keys       []string `json:"keys,omitempty"`
@@ -75,7 +75,7 @@ func DefaultCacheDir() string {
 }
 
 // applyDefaults fills zero values with the documented defaults.
-func (o *RenderOpts) applyDefaults() {
+func (o *Opts) applyDefaults() {
 	if o.Width == 0 {
 		o.Width = 80
 	}
@@ -103,7 +103,7 @@ func (o *RenderOpts) applyDefaults() {
 }
 
 // validate reports any input errors.
-func (o RenderOpts) validate() error {
+func (o *Opts) validate() error {
 	if strings.TrimSpace(o.Command) == "" {
 		return errors.New("render: command is required")
 	}
@@ -117,7 +117,7 @@ func (o RenderOpts) validate() error {
 
 // CacheKey returns the SHA-256 hex digest used as the on-disk cache key for
 // the given options.
-func CacheKey(o RenderOpts) (string, error) {
+func CacheKey(o Opts) (string, error) {
 	o.applyDefaults()
 	buf, err := json.Marshal(o)
 	if err != nil {
@@ -129,7 +129,7 @@ func CacheKey(o RenderOpts) (string, error) {
 
 // Render produces an image for opts, consulting the cache unless noCache is
 // set.
-func (r *Renderer) Render(ctx context.Context, opts RenderOpts, noCache bool) (Render, error) {
+func (r *Renderer) Render(ctx context.Context, opts Opts, noCache bool) (Render, error) {
 	opts.applyDefaults()
 	if err := opts.validate(); err != nil {
 		return Render{}, err
@@ -144,9 +144,9 @@ func (r *Renderer) Render(ctx context.Context, opts RenderOpts, noCache bool) (R
 	mime := mimeFor(opts.Format)
 
 	if !noCache {
-		if info, err := os.Stat(cachePath); err == nil && info.Size() > 0 {
-			data, err := os.ReadFile(cachePath)
-			if err == nil {
+		if info, statErr := os.Stat(cachePath); statErr == nil && info.Size() > 0 {
+			data, readErr := os.ReadFile(cachePath)
+			if readErr == nil {
 				tape, _ := os.ReadFile(tapePath)
 				return Render{
 					Bytes: data, Mime: mime, Format: opts.Format,
@@ -157,8 +157,8 @@ func (r *Renderer) Render(ctx context.Context, opts RenderOpts, noCache bool) (R
 		}
 	}
 
-	if err := os.MkdirAll(r.cacheDir, 0o755); err != nil {
-		return Render{}, fmt.Errorf("render: create cache dir %q: %w", r.cacheDir, err)
+	if mkErr := os.MkdirAll(r.cacheDir, 0o750); mkErr != nil {
+		return Render{}, fmt.Errorf("render: create cache dir %q: %w", r.cacheDir, mkErr)
 	}
 
 	vhsBin, err := r.resolveVHS()
@@ -170,8 +170,8 @@ func (r *Renderer) Render(ctx context.Context, opts RenderOpts, noCache bool) (R
 	if err != nil {
 		return Render{}, fmt.Errorf("render: build tape: %w", err)
 	}
-	if err := os.WriteFile(tapePath, []byte(tape), 0o644); err != nil {
-		return Render{}, fmt.Errorf("render: write tape: %w", err)
+	if wrErr := os.WriteFile(tapePath, []byte(tape), 0o600); wrErr != nil {
+		return Render{}, fmt.Errorf("render: write tape: %w", wrErr)
 	}
 
 	cmd := exec.CommandContext(ctx, vhsBin, tapePath)
@@ -234,8 +234,8 @@ func (r *Renderer) CleanCache() (int, error) {
 		if e.IsDir() {
 			continue
 		}
-		if err := os.Remove(filepath.Join(r.cacheDir, e.Name())); err != nil {
-			return removed, fmt.Errorf("render: remove %s: %w", e.Name(), err)
+		if rmErr := os.Remove(filepath.Join(r.cacheDir, e.Name())); rmErr != nil {
+			return removed, fmt.Errorf("render: remove %s: %w", e.Name(), rmErr)
 		}
 		removed++
 	}

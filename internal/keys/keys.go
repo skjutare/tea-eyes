@@ -59,6 +59,8 @@ func isModifier(s string) bool {
 //
 // A string containing '+' is treated as modified only if it starts with a
 // recognized modifier (ctrl/alt/shift/meta); otherwise it's a literal.
+//
+//nolint:gocognit,funlen // parser dispatch is intrinsically branchy (modifier combos + named keys + literal fallback)
 func Parse(s string) ([]byte, error) {
 	if s == "" {
 		return nil, errors.New("keys: empty key string")

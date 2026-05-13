@@ -1,3 +1,9 @@
+// Package teatest generates and runs in-process Bubble Tea harnesses using
+// the white-box TeaEyesNewModel pattern. It writes a build-tagged _test.go
+// file into the user's package, compiles it once via `go test -c -tags
+// teaeyes`, caches the resulting binary under
+// $XDG_CACHE_HOME/tea-eyes/teatest/, and drives it with runtime knobs
+// supplied through environment variables.
 package teatest
 
 import (
@@ -137,11 +143,11 @@ func (d *Driver) RunGolden(ctx context.Context, opts GoldenOpts) (GoldenResult, 
 	}
 
 	if missing || opts.UpdateGolden {
-		if err := os.MkdirAll(filepath.Dir(opts.GoldenFile), 0o755); err != nil {
-			return GoldenResult{}, fmt.Errorf("teatest: mkdir for golden: %w", err)
+		if mkErr := os.MkdirAll(filepath.Dir(opts.GoldenFile), 0o750); mkErr != nil {
+			return GoldenResult{}, fmt.Errorf("teatest: mkdir for golden: %w", mkErr)
 		}
-		if err := os.WriteFile(opts.GoldenFile, []byte(final), 0o644); err != nil {
-			return GoldenResult{}, fmt.Errorf("teatest: write golden %q: %w", opts.GoldenFile, err)
+		if wrErr := os.WriteFile(opts.GoldenFile, []byte(final), 0o600); wrErr != nil {
+			return GoldenResult{}, fmt.Errorf("teatest: write golden %q: %w", opts.GoldenFile, wrErr)
 		}
 		res.Match = true
 		res.Created = missing
@@ -196,7 +202,11 @@ type harnessOutput struct {
 	ViewText    string `json:"view_text"`
 }
 
-func (d *Driver) runHarness(ctx context.Context, pkgPath, modelFunc string, inv harnessInvocation) (harnessOutput, error) {
+func (d *Driver) runHarness(
+	ctx context.Context,
+	pkgPath, modelFunc string,
+	inv harnessInvocation,
+) (harnessOutput, error) {
 	absPkg, err := filepath.Abs(pkgPath)
 	if err != nil {
 		return harnessOutput{}, fmt.Errorf("teatest: resolve package path %q: %w", pkgPath, err)
@@ -219,8 +229,8 @@ func (d *Driver) runHarness(ctx context.Context, pkgPath, modelFunc string, inv 
 		return harnessOutput{}, err
 	}
 
-	if err := os.MkdirAll(d.cacheDir, 0o755); err != nil {
-		return harnessOutput{}, fmt.Errorf("teatest: create cache dir: %w", err)
+	if mkErr := os.MkdirAll(d.cacheDir, 0o750); mkErr != nil {
+		return harnessOutput{}, fmt.Errorf("teatest: create cache dir: %w", mkErr)
 	}
 
 	binPath, err := d.ensureHarnessBinary(ctx, absPkg, moduleRoot, pkgName, modelFunc)
@@ -230,9 +240,9 @@ func (d *Driver) runHarness(ctx context.Context, pkgPath, modelFunc string, inv 
 
 	keysJSON := "[]"
 	if len(inv.Keys) > 0 {
-		b, err := json.Marshal(inv.Keys)
-		if err != nil {
-			return harnessOutput{}, fmt.Errorf("teatest: marshal keys: %w", err)
+		b, marshalErr := json.Marshal(inv.Keys)
+		if marshalErr != nil {
+			return harnessOutput{}, fmt.Errorf("teatest: marshal keys: %w", marshalErr)
 		}
 		keysJSON = string(b)
 	}
@@ -255,32 +265,35 @@ func (d *Driver) runHarness(ctx context.Context, pkgPath, modelFunc string, inv 
 		return harnessOutput{}, fmt.Errorf("teatest: result sentinel not found in harness output:\n%s", string(raw))
 	}
 	var out harnessOutput
-	if err := json.Unmarshal([]byte(jsonLine), &out); err != nil {
-		return harnessOutput{}, fmt.Errorf("teatest: parse harness JSON: %w\nline: %s", err, jsonLine)
+	if jsonErr := json.Unmarshal([]byte(jsonLine), &out); jsonErr != nil {
+		return harnessOutput{}, fmt.Errorf("teatest: parse harness JSON: %w\nline: %s", jsonErr, jsonLine)
 	}
 	return out, nil
 }
 
 func extractResultLine(combined string) (string, bool) {
-	i := strings.Index(combined, resultSentinelStart)
-	if i < 0 {
+	_, after, ok := strings.Cut(combined, resultSentinelStart)
+	if !ok {
 		return "", false
 	}
-	rest := combined[i+len(resultSentinelStart):]
-	j := strings.Index(rest, resultSentinelEnd)
-	if j < 0 {
+	rest := after
+	before, _, ok := strings.Cut(rest, resultSentinelEnd)
+	if !ok {
 		return "", false
 	}
-	return rest[:j], true
+	return before, true
 }
 
-func (d *Driver) ensureHarnessBinary(ctx context.Context, absPkg, moduleRoot, pkgName, modelFunc string) (string, error) {
+func (d *Driver) ensureHarnessBinary(
+	ctx context.Context,
+	absPkg, moduleRoot, pkgName, modelFunc string,
+) (string, error) {
 	key, err := harnessCacheKey(absPkg, moduleRoot, pkgName, modelFunc)
 	if err != nil {
 		return "", err
 	}
 	binPath := filepath.Join(d.cacheDir, "harness-"+key+binExt())
-	if info, err := os.Stat(binPath); err == nil && info.Size() > 0 {
+	if info, statErr := os.Stat(binPath); statErr == nil && info.Size() > 0 {
 		return binPath, nil
 	}
 
@@ -289,8 +302,8 @@ func (d *Driver) ensureHarnessBinary(ctx context.Context, absPkg, moduleRoot, pk
 		return "", err
 	}
 	harnessPath := filepath.Join(absPkg, harnessFileName)
-	if err := os.WriteFile(harnessPath, harness, 0o644); err != nil {
-		return "", fmt.Errorf("teatest: write harness file %q: %w", harnessPath, err)
+	if wrErr := os.WriteFile(harnessPath, harness, 0o600); wrErr != nil {
+		return "", fmt.Errorf("teatest: write harness file %q: %w", harnessPath, wrErr)
 	}
 	defer os.Remove(harnessPath)
 
@@ -317,9 +330,9 @@ func harnessCacheKey(absPkg, moduleRoot, pkgName, modelFunc string) (string, err
 	}
 	sort.Strings(files)
 	for _, f := range files {
-		b, err := os.ReadFile(f)
-		if err != nil {
-			return "", fmt.Errorf("teatest: read %s: %w", f, err)
+		b, readErr := os.ReadFile(f)
+		if readErr != nil {
+			return "", fmt.Errorf("teatest: read %s: %w", f, readErr)
 		}
 		fmt.Fprintf(h, "FILE %s %d\n", filepath.Base(f), len(b))
 		h.Write(b)
@@ -327,7 +340,7 @@ func harnessCacheKey(absPkg, moduleRoot, pkgName, modelFunc string) (string, err
 
 	for _, mf := range []string{"go.mod", "go.sum"} {
 		path := filepath.Join(moduleRoot, mf)
-		if b, err := os.ReadFile(path); err == nil {
+		if b, readErr := os.ReadFile(path); readErr == nil {
 			fmt.Fprintf(h, "MOD %s %d\n", mf, len(b))
 			h.Write(b)
 		}
@@ -376,11 +389,13 @@ func readPackageName(path string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	for _, line := range strings.Split(string(b), "\n") {
+	for line := range strings.SplitSeq(string(b), "\n") {
 		t := strings.TrimSpace(line)
 		if strings.HasPrefix(t, "package ") {
 			parts := strings.Fields(t)
-			if len(parts) >= 2 {
+			// "package <name>" — need at least two tokens.
+			const minPackageTokens = 2
+			if len(parts) >= minPackageTokens {
 				return strings.TrimSuffix(parts[1], ";"), true
 			}
 		}

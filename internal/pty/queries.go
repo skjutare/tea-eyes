@@ -18,12 +18,9 @@ const maxQueryLen = 16
 
 // scanForQueryReplies returns the byte sequences that should be written back
 // to the pty master in response to any queries present in chunk.
-func scanForQueryReplies(chunk []byte, width, height int) [][]byte {
+func scanForQueryReplies(chunk []byte, _, height int) [][]byte {
 	if height <= 0 {
 		height = 24
-	}
-	if width <= 0 {
-		width = 80
 	}
 
 	var out [][]byte
@@ -32,7 +29,7 @@ func scanForQueryReplies(chunk []byte, width, height int) [][]byte {
 	// Reply with row/col at the bottom-left so layout code that uses it gets a
 	// plausible answer.
 	if bytes.Contains(chunk, []byte("\x1b[6n")) {
-		out = append(out, []byte(fmt.Sprintf("\x1b[%d;1R", height)))
+		out = append(out, fmt.Appendf(nil, "\x1b[%d;1R", height))
 	}
 
 	// CSI 5n — Device Status Report, "are you OK?". Reply with "I'm OK".

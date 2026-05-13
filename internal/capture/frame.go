@@ -48,9 +48,9 @@ func RenderFrame(raw []byte, width, height int, stripANSI bool) (Frame, error) {
 	var sb strings.Builder
 	sb.Grow((width + 1) * height)
 	line := make([]rune, 0, width)
-	for y := 0; y < height; y++ {
+	for y := range height {
 		line = line[:0]
-		for x := 0; x < width; x++ {
+		for x := range width {
 			g := term.Cell(x, y)
 			c := g.Char
 			if c == 0 {

@@ -75,7 +75,7 @@ func makeRenderImageHandler(r *render.Renderer) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("tui_render_image: " + err.Error()), nil
 		}
 
-		opts := render.RenderOpts{
+		opts := render.Opts{
 			Command:    command,
 			Args:       strArgs,
 			Keys:       keySpecs,

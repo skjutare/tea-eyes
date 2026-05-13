@@ -6,7 +6,7 @@ import (
 )
 
 func TestBuildTape_BasicPNG(t *testing.T) {
-	opts := RenderOpts{Command: "./hello-tui"}
+	opts := Opts{Command: "./hello-tui"}
 	opts.applyDefaults()
 	tape, err := BuildTape(opts, "/tmp/x.png")
 	if err != nil {
@@ -27,7 +27,7 @@ func TestBuildTape_BasicPNG(t *testing.T) {
 }
 
 func TestBuildTape_Keys(t *testing.T) {
-	opts := RenderOpts{Command: "./tui", Keys: []string{"tab", "ctrl+c", "hello", "shift+tab"}}
+	opts := Opts{Command: "./tui", Keys: []string{"tab", "ctrl+c", "hello", "shift+tab"}}
 	opts.applyDefaults()
 	tape, err := BuildTape(opts, "/tmp/x.png")
 	if err != nil {
@@ -41,7 +41,7 @@ func TestBuildTape_Keys(t *testing.T) {
 }
 
 func TestBuildTape_GIF(t *testing.T) {
-	opts := RenderOpts{Command: "./tui", Format: "gif"}
+	opts := Opts{Command: "./tui", Format: "gif"}
 	opts.applyDefaults()
 	tape, err := BuildTape(opts, "/tmp/x.gif")
 	if err != nil {
@@ -56,11 +56,11 @@ func TestBuildTape_GIF(t *testing.T) {
 }
 
 func TestCacheKey_Deterministic(t *testing.T) {
-	a, err := CacheKey(RenderOpts{Command: "x", Width: 80, Height: 24})
+	a, err := CacheKey(Opts{Command: "x", Width: 80, Height: 24})
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := CacheKey(RenderOpts{Command: "x"})
+	b, err := CacheKey(Opts{Command: "x"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestCacheKey_Deterministic(t *testing.T) {
 	if a != b {
 		t.Errorf("expected same cache key after defaults, got %s vs %s", a, b)
 	}
-	c, err := CacheKey(RenderOpts{Command: "y"})
+	c, err := CacheKey(Opts{Command: "y"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,11 +79,11 @@ func TestCacheKey_Deterministic(t *testing.T) {
 
 func TestMapKeyToTape_Specials(t *testing.T) {
 	cases := map[string]string{
-		"enter":    "Enter",
-		"f5":       "F5",
-		"pgdown":   "PageDown",
-		"ctrl+c":   "Ctrl+c",
-		"alt+x":    "Alt+x",
+		"enter":     "Enter",
+		"f5":        "F5",
+		"pgdown":    "PageDown",
+		"ctrl+c":    "Ctrl+c",
+		"alt+x":     "Alt+x",
 		"shift+tab": "Shift+Tab",
 	}
 	for in, want := range cases {

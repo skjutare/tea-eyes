@@ -12,6 +12,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -26,6 +27,9 @@ import (
 	"gitlab.com/skjutare/tea-eyes/internal/server"
 )
 
+// exitCodeUsage is returned for CLI usage errors (missing/unknown subcommand).
+const exitCodeUsage = 2
+
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
@@ -35,10 +39,10 @@ func main() {
 			os.Exit(runCache(os.Args[2:]))
 		}
 	}
-	runServer()
+	os.Exit(runServer())
 }
 
-func runServer() {
+func runServer() int {
 	var (
 		showVersion = flag.Bool("version", false, "print version and exit")
 		logFile     = flag.String("log-file", "", "append logs to this file (default: stderr)")
@@ -47,17 +51,17 @@ func runServer() {
 
 	if *showVersion {
 		fmt.Println("tea-eyes", server.Version)
-		return
+		return 0
 	}
 
 	var logOut io.Writer = os.Stderr
 	if *logFile != "" {
-		f, err := os.OpenFile(*logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+		f, err := os.OpenFile(*logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "tea-eyes: cannot open log file %q: %v\n", *logFile, err)
-			os.Exit(1)
+			return 1
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		logOut = f
 	}
 	log.SetOutput(logOut)
@@ -67,8 +71,9 @@ func runServer() {
 	s := server.New()
 	if err := mcpserver.ServeStdio(s); err != nil {
 		log.Printf("tea-eyes: server exited with error: %v", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 // runDoctor checks for vhs/ttyd/ffmpeg on PATH and prints versions or install
@@ -102,7 +107,10 @@ func runDoctor() int {
 	cache := render.DefaultCacheDir()
 	fmt.Printf("\n  cache dir: %s\n", cache)
 	if missing > 0 {
-		fmt.Printf("\n%d external dependency(ies) missing. tui_render_image will fail until they are installed.\n", missing)
+		fmt.Printf(
+			"\n%d external dependency(ies) missing. tui_render_image will fail until they are installed.\n",
+			missing,
+		)
 		return 1
 	}
 	fmt.Println("\nAll external dependencies present.")
@@ -113,7 +121,7 @@ func runDoctor() int {
 func runCache(args []string) int {
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "usage: tea-eyes cache <clean|path>")
-		return 2
+		return exitCodeUsage
 	}
 	switch args[0] {
 	case "clean":
@@ -129,13 +137,14 @@ func runCache(args []string) int {
 		fmt.Println(render.DefaultCacheDir())
 		return 0
 	default:
+		//nolint:gosec // G705: writing to stderr is not an HTTP response; XSS is a false positive
 		fmt.Fprintf(os.Stderr, "tea-eyes cache: unknown subcommand %q (want clean|path)\n", args[0])
-		return 2
+		return exitCodeUsage
 	}
 }
 
 func captureVersion(bin string, args []string) string {
-	out, err := exec.Command(bin, args...).CombinedOutput()
+	out, err := exec.CommandContext(context.Background(), bin, args...).CombinedOutput()
 	if err != nil && len(out) == 0 {
 		return "(version check failed: " + err.Error() + ")"
 	}
@@ -143,8 +152,8 @@ func captureVersion(bin string, args []string) string {
 }
 
 func firstLine(s string) string {
-	if i := strings.IndexByte(s, '\n'); i >= 0 {
-		return s[:i]
+	if before, _, ok := strings.Cut(s, "\n"); ok {
+		return before
 	}
 	return s
 }

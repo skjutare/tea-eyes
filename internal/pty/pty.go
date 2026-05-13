@@ -43,6 +43,7 @@ const (
 	defaultHeight   = 24
 	defaultSettleMs = 300
 	cleanupGrace    = 500 * time.Millisecond
+	readChunkSize   = 4096
 )
 
 // Capture spawns the command attached to a pty of the requested size, writes
@@ -51,6 +52,8 @@ const (
 //
 // The reader runs in a goroutine to keep the pty buffer drained, so child
 // processes that emit a lot of output won't block.
+//
+//nolint:gocognit,funlen // intrinsic complexity: pty reader + writer + ctx + child-exit must coexist
 func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]byte, error) {
 	if opts.Width <= 0 {
 		opts.Width = defaultWidth
@@ -69,6 +72,7 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 		return nil, fmt.Errorf("pty: command not found: %q (PATH=%s)", opts.Command, os.Getenv("PATH"))
 	}
 
+	//nolint:gosec // G204: launching a subprocess from caller-supplied args is this package's purpose
 	cmd := exec.CommandContext(ctx, opts.Command, opts.Args...)
 	env := opts.Env
 	if env == nil {
@@ -83,8 +87,8 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 	}
 
 	ptyFile, err := pty.StartWithSize(cmd, &pty.Winsize{
-		Cols: uint16(opts.Width),
-		Rows: uint16(opts.Height),
+		Cols: uint16(opts.Width),  //nolint:gosec // G115: width is caller-bounded to terminal columns
+		Rows: uint16(opts.Height), //nolint:gosec // G115: height is caller-bounded to terminal rows
 	})
 	if err != nil {
 		return nil, fmt.Errorf("pty: failed to start %q under a pseudo-terminal: %w", opts.Command, err)
@@ -98,9 +102,9 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 	)
 	go func() {
 		defer close(readDone)
-		chunk := make([]byte, 4096)
+		chunk := make([]byte, readChunkSize)
 		for {
-			n, err := ptyFile.Read(chunk)
+			n, readErr := ptyFile.Read(chunk)
 			if n > 0 {
 				mu.Lock()
 				buf.Write(chunk[:n])
@@ -111,10 +115,7 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 				safeEnd := len(b)
 				if safeEnd > scanPos {
 					replies := scanForQueryReplies(b[scanPos:safeEnd], opts.Width, opts.Height)
-					scanPos = safeEnd - maxQueryLen
-					if scanPos < 0 {
-						scanPos = 0
-					}
+					scanPos = max(safeEnd-maxQueryLen, 0)
 					mu.Unlock()
 					for _, r := range replies {
 						_, _ = ptyFile.Write(r)
@@ -123,11 +124,11 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 					mu.Unlock()
 				}
 			}
-			if err != nil {
-				if !errors.Is(err, io.EOF) && !errors.Is(err, fs.ErrClosed) {
+			if readErr != nil {
+				if !errors.Is(readErr, io.EOF) && !errors.Is(readErr, fs.ErrClosed) {
 					// EIO is normal when the slave side closes on darwin/linux;
 					// nothing actionable.
-					_ = err
+					_ = readErr
 				}
 				return
 			}
@@ -149,7 +150,12 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 		if cmd.ProcessState != nil {
 			exitCode = cmd.ProcessState.ExitCode()
 		}
-		return snap, fmt.Errorf("pty: process %q exited before initial settle (exit=%d, err=%v)", opts.Command, exitCode, werr)
+		return snap, fmt.Errorf(
+			"pty: process %q exited before initial settle (exit=%d, err=%w)",
+			opts.Command,
+			exitCode,
+			werr,
+		)
 	case <-ctx.Done():
 		_ = cmd.Process.Signal(syscall.SIGTERM)
 		<-waitDone
@@ -163,12 +169,12 @@ func (d *Driver) Capture(ctx context.Context, opts SpawnOpts, keys [][]byte) ([]
 		if len(k) == 0 {
 			continue
 		}
-		if _, err := ptyFile.Write(k); err != nil {
+		if _, writeErr := ptyFile.Write(k); writeErr != nil {
 			_ = cmd.Process.Signal(syscall.SIGTERM)
 			<-waitDone
 			_ = ptyFile.Close()
 			<-readDone
-			return snapshot(&mu, &buf), fmt.Errorf("pty: failed to write key #%d (%d bytes): %w", i, len(k), err)
+			return snapshot(&mu, &buf), fmt.Errorf("pty: failed to write key #%d (%d bytes): %w", i, len(k), writeErr)
 		}
 		time.Sleep(settle)
 		select {

@@ -17,11 +17,8 @@ func unifiedDiff(want, got string) string {
 
 	var b strings.Builder
 	b.WriteString("--- golden\n+++ actual\n")
-	maxN := len(wantLines)
-	if len(gotLines) > maxN {
-		maxN = len(gotLines)
-	}
-	for i := 0; i < maxN; i++ {
+	maxN := max(len(gotLines), len(wantLines))
+	for i := range maxN {
 		var w, g string
 		var hasW, hasG bool
 		if i < len(wantLines) {

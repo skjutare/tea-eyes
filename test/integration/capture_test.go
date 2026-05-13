@@ -66,7 +66,12 @@ func newClient(t *testing.T) (*client.Client, context.Context, context.CancelFun
 	return c, ctx, cancel
 }
 
-func callCapture(t *testing.T, c *client.Client, ctx context.Context, args map[string]any) (text string, raw map[string]any) {
+func callCapture(
+	t *testing.T,
+	c *client.Client,
+	ctx context.Context,
+	args map[string]any,
+) (text string, raw map[string]any) {
 	t.Helper()
 	req := mcp.CallToolRequest{}
 	req.Params.Name = "tui_capture_text"
@@ -77,11 +82,13 @@ func callCapture(t *testing.T, c *client.Client, ctx context.Context, args map[s
 	}
 	if res.IsError {
 		var msg string
+		var msgSb80 strings.Builder
 		for _, ct := range res.Content {
 			if tc, ok := ct.(mcp.TextContent); ok {
-				msg += tc.Text
+				msgSb80.WriteString(tc.Text)
 			}
 		}
+		msg += msgSb80.String()
 		t.Fatalf("tool returned error: %s", msg)
 	}
 	if res.StructuredContent != nil {
@@ -90,14 +97,16 @@ func callCapture(t *testing.T, c *client.Client, ctx context.Context, args map[s
 		if v, ok := raw["text"].(string); ok {
 			text = v
 		}
-		return
+		return text, raw
 	}
+	var textSb95 strings.Builder
 	for _, ct := range res.Content {
 		if tc, ok := ct.(mcp.TextContent); ok {
-			text += tc.Text
+			textSb95.WriteString(tc.Text)
 		}
 	}
-	return
+	text += textSb95.String()
+	return text, raw
 }
 
 func TestTuiCaptureText_Greeting(t *testing.T) {
@@ -176,11 +185,13 @@ func TestTuiCaptureText_UnknownCommand(t *testing.T) {
 		t.Fatalf("expected error result, got success")
 	}
 	var msg string
+	var msgSb179 strings.Builder
 	for _, ct := range res.Content {
 		if tc, ok := ct.(mcp.TextContent); ok {
-			msg += tc.Text
+			msgSb179.WriteString(tc.Text)
 		}
 	}
+	msg += msgSb179.String()
 	if !strings.Contains(msg, "command not found") {
 		t.Errorf("error should mention 'command not found', got: %s", msg)
 	}
@@ -205,11 +216,13 @@ func TestTuiCaptureText_BadKey(t *testing.T) {
 		t.Fatal("expected error for bad key")
 	}
 	var msg string
+	var msgSb208 strings.Builder
 	for _, ct := range res.Content {
 		if tc, ok := ct.(mcp.TextContent); ok {
-			msg += tc.Text
+			msgSb208.WriteString(tc.Text)
 		}
 	}
+	msg += msgSb208.String()
 	if !strings.Contains(msg, "ctrl+meow") {
 		t.Errorf("error should mention offending key, got: %s", msg)
 	}

@@ -169,8 +169,8 @@ func stringSlice(args map[string]any, key string) ([]string, error) {
 	}
 	out := make([]string, 0, len(arr))
 	for i, item := range arr {
-		s, ok := item.(string)
-		if !ok {
+		s, isStr := item.(string)
+		if !isStr {
 			return nil, fmt.Errorf("%s[%d] must be a string", key, i)
 		}
 		out = append(out, s)
@@ -206,4 +206,3 @@ func boolArg(args map[string]any, key string, def bool) bool {
 	}
 	return b
 }
-

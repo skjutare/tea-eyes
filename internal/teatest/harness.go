@@ -1,5 +1,3 @@
-// Package teatest generates and runs in-process Bubble Tea harnesses using
-// the white-box TeaEyesNewModel pattern.
 package teatest
 
 import (
@@ -203,11 +201,11 @@ func renderHarness(packageName, modelFunc string) ([]byte, error) {
 		return nil, fmt.Errorf("teatest: parse harness template: %w", err)
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, harnessTemplateData{
+	if execErr := tmpl.Execute(&buf, harnessTemplateData{
 		PackageName: packageName,
 		ModelFunc:   modelFunc,
-	}); err != nil {
-		return nil, fmt.Errorf("teatest: render harness: %w", err)
+	}); execErr != nil {
+		return nil, fmt.Errorf("teatest: render harness: %w", execErr)
 	}
 	return buf.Bytes(), nil
 }
