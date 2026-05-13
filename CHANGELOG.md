@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `plugin/agents/tui-designer.md` — reference subagent for iterating on
+  the visual design of TUIs. Renders the TUI as an image, describes
+  what it sees, proposes one focused change at a time, and verifies via
+  re-render (Phase 5).
+- `plugin/agents/tui-tester.md` — reference subagent for golden-file
+  testing of Bubble Tea apps. Enforces the `TeaEyesNewModel` white-box
+  pattern and the ASCII-vs-TrueColor color-profile discipline for
+  stable, reviewable goldens (Phase 5).
+- `docs/agents.md` — when to invoke each subagent, example prompts that
+  trigger them, the tool lists (including tools they deliberately
+  *don't* have), and how they compose with the skills.
+- Plugin manifest (`plugin/plugin.json`) now registers both subagents
+  under `agents` (the entries were already present from Phase 4; the
+  files they reference now exist).
 - `plugin/skills/tea-eyes-loop/SKILL.md` — framework-agnostic skill that
   teaches the capture → reason → edit → re-capture loop and when to pick
   which tea-eyes MCP tool (Phase 4).

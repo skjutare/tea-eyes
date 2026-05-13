@@ -80,14 +80,29 @@ brew install vhs ttyd ffmpeg
 
 Run `./tea-eyes doctor` for a health check.
 
+## Subagents
+
+Two reference subagents ship with the plugin and combine the MCP tools
+with the skills into focused workflows:
+
+- **`tui-designer`** — visual design iteration. Renders the TUI as an
+  image, describes what it sees, proposes one focused change, edits the
+  source, re-renders to verify.
+- **`tui-tester`** — golden-file testing for Bubble Tea apps. Enforces
+  the `TeaEyesNewModel` white-box pattern and the ASCII-vs-TrueColor
+  profile discipline that keeps goldens deterministic.
+
+See [`docs/agents.md`](docs/agents.md) for when to invoke each, example
+prompts, and how they compose with the skills.
+
 ## Status / Roadmap
 
 - [x] Phase 0 — Bootstrap (repo skeleton, license, CI)
 - [x] Phase 1 — MCP server + pty driver + `tui_capture_text`
 - [x] Phase 2 — VHS image rendering + `tui_render_image`
-- [ ] Phase 3 — teatest harness + `tui_test_golden` + `tui_inspect_model`
-- [ ] Phase 4 — Skills + plugin manifest
-- [ ] Phase 5 — Reference subagents (`tui-designer`, `tui-tester`)
+- [x] Phase 3 — teatest harness + `tui_test_golden` + `tui_inspect_model`
+- [x] Phase 4 — Skills + plugin manifest
+- [x] Phase 5 — Reference subagents (`tui-designer`, `tui-tester`)
 - [ ] Phase 6 — tmux driver + `mode` parameter
 - [ ] Phase 7 — Release polish + v0.1.0
 
