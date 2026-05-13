@@ -9,10 +9,11 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	"gitlab.com/skjutare/tea-eyes/internal/capture"
+	capturedrv "gitlab.com/skjutare/tea-eyes/internal/driver"
 	"gitlab.com/skjutare/tea-eyes/internal/keys"
-	"gitlab.com/skjutare/tea-eyes/internal/pty"
 	"gitlab.com/skjutare/tea-eyes/internal/render"
 	"gitlab.com/skjutare/tea-eyes/internal/teatest"
+	"gitlab.com/skjutare/tea-eyes/internal/tmux"
 )
 
 // Version is the server version reported during MCP initialize. Overridable
@@ -21,10 +22,19 @@ var Version = "0.1.0-dev"
 
 // CaptureTextResult is the structured payload returned by tui_capture_text.
 type CaptureTextResult struct {
-	Text     string `json:"text"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
-	RawBytes int    `json:"raw_bytes"`
+	Text        string `json:"text"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	RawBytes    int    `json:"raw_bytes"`
+	Mode        string `json:"mode"`
+	TmuxSession string `json:"tmux_session,omitempty"`
+}
+
+// SessionAttachHintResult is the structured payload returned by
+// tui_session_attach_hint.
+type SessionAttachHintResult struct {
+	Command string `json:"command"`
+	Exists  bool   `json:"exists"`
 }
 
 // New builds a fully-configured MCP server with all tea-eyes tools registered,
@@ -42,14 +52,15 @@ func NewWithRenderer(r *render.Renderer) *server.MCPServer {
 		server.WithToolCapabilities(true),
 		server.WithRecovery(),
 	)
-	registerCaptureText(s, pty.New())
+	registerCaptureText(s)
 	registerRenderImage(s, r)
 	registerTestGolden(s, teatest.NewDriver(""))
 	registerInspectModel(s, teatest.NewDriver(""))
+	registerSessionAttachHint(s, tmux.New())
 	return s
 }
 
-func registerCaptureText(s *server.MCPServer, driver *pty.Driver) {
+func registerCaptureText(s *server.MCPServer) {
 	tool := mcp.NewTool("tui_capture_text",
 		mcp.WithDescription(
 			"Spawn a TUI command under a pseudo-terminal, optionally send a "+
@@ -91,71 +102,177 @@ func registerCaptureText(s *server.MCPServer, driver *pty.Driver) {
 		mcp.WithString("cwd",
 			mcp.Description("Working directory for the spawned command. Defaults to the server's cwd."),
 		),
+		mcp.WithString("mode",
+			mcp.Description(
+				"Capture backend: \"pty\" (default, ephemeral pseudo-terminal) or "+
+					"\"tmux\" (persistent session the user can attach to in another "+
+					"terminal).",
+			),
+			mcp.DefaultString("pty"),
+			mcp.Enum("pty", "tmux"),
+		),
+		mcp.WithString("tmux_session",
+			mcp.Description(
+				"tmux mode only. Existing session name to attach to (and create if "+
+					"missing). Leave empty to create an ephemeral teaeyes-<rand> "+
+					"session that is killed after the call unless tmux_persist=true.",
+			),
+		),
+		mcp.WithBoolean("tmux_persist",
+			mcp.Description(
+				"tmux mode only. Keep the session alive after the call so the user "+
+					"(or a follow-up call) can attach to it. Returns tmux_session "+
+					"in the structured result.",
+			),
+			mcp.DefaultBool(false),
+		),
 	)
-	s.AddTool(tool, makeCaptureTextHandler(driver))
+	s.AddTool(tool, makeCaptureTextHandler())
 }
 
-func makeCaptureTextHandler(driver *pty.Driver) server.ToolHandlerFunc {
+// captureTextInput is the validated, parsed form of a tui_capture_text call.
+type captureTextInput struct {
+	command     string
+	args        []string
+	keys        [][]byte
+	width       int
+	height      int
+	settleMs    int
+	stripANSI   bool
+	cwd         string
+	mode        capturedrv.Mode
+	tmuxSession string
+	tmuxPersist bool
+}
+
+func parseCaptureTextInput(args map[string]any) (captureTextInput, *mcp.CallToolResult) {
+	in := captureTextInput{
+		width:     intArg(args, "width", 80),
+		height:    intArg(args, "height", 24),
+		settleMs:  intArg(args, "settle_ms", 300),
+		stripANSI: boolArg(args, "strip_ansi", true),
+	}
+	in.command, _ = args["command"].(string)
+	if in.command == "" {
+		return in, mcp.NewToolResultError("tui_capture_text: 'command' is required")
+	}
+	in.cwd, _ = args["cwd"].(string)
+
+	strArgs, err := stringSlice(args, "args")
+	if err != nil {
+		return in, mcp.NewToolResultError("tui_capture_text: " + err.Error())
+	}
+	in.args = strArgs
+	keySpecs, err := stringSlice(args, "keys")
+	if err != nil {
+		return in, mcp.NewToolResultError("tui_capture_text: " + err.Error())
+	}
+
+	modeStr, _ := args["mode"].(string)
+	mode, mErr := capturedrv.ParseMode(modeStr)
+	if mErr != nil {
+		return in, mcp.NewToolResultError("tui_capture_text: " + mErr.Error())
+	}
+	in.mode = mode
+	in.tmuxSession, _ = args["tmux_session"].(string)
+	in.tmuxPersist = boolArg(args, "tmux_persist", false)
+	if in.mode == capturedrv.ModePTY && (in.tmuxSession != "" || in.tmuxPersist) {
+		return in, mcp.NewToolResultError(
+			"tui_capture_text: tmux_session and tmux_persist require mode=\"tmux\"",
+		)
+	}
+
+	in.keys = make([][]byte, 0, len(keySpecs))
+	for i, spec := range keySpecs {
+		b, perr := keys.Parse(spec)
+		if perr != nil {
+			return in, mcp.NewToolResultError(
+				fmt.Sprintf("tui_capture_text: keys[%d]=%q: %v", i, spec, perr),
+			)
+		}
+		in.keys = append(in.keys, b)
+	}
+	return in, nil
+}
+
+func makeCaptureTextHandler() server.ToolHandlerFunc {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		args := req.GetArguments()
-
-		command, _ := args["command"].(string)
-		if command == "" {
-			return mcp.NewToolResultError("tui_capture_text: 'command' is required"), nil
+		in, bad := parseCaptureTextInput(req.GetArguments())
+		if bad != nil {
+			return bad, nil
 		}
 
-		strArgs, err := stringSlice(args, "args")
-		if err != nil {
-			return mcp.NewToolResultError("tui_capture_text: " + err.Error()), nil
-		}
-		keySpecs, err := stringSlice(args, "keys")
+		drv, err := capturedrv.New(in.mode)
 		if err != nil {
 			return mcp.NewToolResultError("tui_capture_text: " + err.Error()), nil
 		}
 
-		width := intArg(args, "width", 80)
-		height := intArg(args, "height", 24)
-		settleMs := intArg(args, "settle_ms", 300)
-		stripANSI := boolArg(args, "strip_ansi", true)
-		cwd, _ := args["cwd"].(string)
-
-		// Parse each key spec individually so per-entry errors are precise.
-		keyBytes := make([][]byte, 0, len(keySpecs))
-		for i, spec := range keySpecs {
-			b, perr := keys.Parse(spec)
-			if perr != nil {
-				return mcp.NewToolResultError(
-					fmt.Sprintf("tui_capture_text: keys[%d]=%q: %v", i, spec, perr),
-				), nil
-			}
-			keyBytes = append(keyBytes, b)
-		}
-
-		raw, err := driver.Capture(ctx, pty.SpawnOpts{
-			Command:  command,
-			Args:     strArgs,
-			Width:    width,
-			Height:   height,
-			SettleMs: settleMs,
-			Cwd:      cwd,
-		}, keyBytes)
+		out, err := drv.Capture(ctx, capturedrv.CaptureOpts{
+			Command:     in.command,
+			Args:        in.args,
+			Keys:        in.keys,
+			Width:       in.width,
+			Height:      in.height,
+			SettleMs:    in.settleMs,
+			Cwd:         in.cwd,
+			SessionName: in.tmuxSession,
+			Persist:     in.tmuxPersist,
+		})
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("tui_capture_text: capture failed", err), nil
 		}
 
-		frame, err := capture.RenderFrame(raw, width, height, stripANSI)
+		frame, err := capture.RenderFrame(out.Raw, in.width, in.height, in.stripANSI)
 		if err != nil {
 			return mcp.NewToolResultErrorFromErr("tui_capture_text: render failed", err), nil
 		}
 
 		result := CaptureTextResult{
-			Text:     frame.Text,
-			Width:    frame.Width,
-			Height:   frame.Height,
-			RawBytes: len(raw),
+			Text:        frame.Text,
+			Width:       frame.Width,
+			Height:      frame.Height,
+			RawBytes:    len(out.Raw),
+			Mode:        string(in.mode),
+			TmuxSession: out.Session,
 		}
 		return mcp.NewToolResultStructured(result, frame.Text), nil
 	}
+}
+
+func registerSessionAttachHint(s *server.MCPServer, td *tmux.Driver) {
+	tool := mcp.NewTool("tui_session_attach_hint",
+		mcp.WithDescription(
+			"Return the shell command the user can run to attach to a persistent "+
+				"tmux session created by tea-eyes (typically from a tui_capture_text "+
+				"call with mode=\"tmux\" and tmux_persist=true). Use this to tell the "+
+				"user exactly how to watch Claude drive the TUI live.",
+		),
+		mcp.WithString("session_name",
+			mcp.Description("Name of the tmux session to attach to."),
+			mcp.Required(),
+		),
+	)
+	s.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := req.GetArguments()
+		name, _ := args["session_name"].(string)
+		if name == "" {
+			return mcp.NewToolResultError("tui_session_attach_hint: 'session_name' is required"), nil
+		}
+		exists := false
+		if _, lpErr := td.LookPath(); lpErr == nil {
+			ok, _ := td.HasSession(ctx, name)
+			exists = ok
+		}
+		cmd := "tmux attach -t " + name
+		summary := cmd
+		if !exists {
+			summary = cmd + "  (session not currently present)"
+		}
+		return mcp.NewToolResultStructured(SessionAttachHintResult{
+			Command: cmd,
+			Exists:  exists,
+		}, summary), nil
+	})
 }
 
 func stringSlice(args map[string]any, key string) ([]string, error) {

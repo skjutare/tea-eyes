@@ -78,7 +78,10 @@ brew install vhs ttyd ffmpeg
 # or: go install github.com/charmbracelet/vhs@latest
 ```
 
-Run `./tea-eyes doctor` for a health check.
+Run `./tea-eyes doctor` for a health check. The pty driver is the default;
+tmux is optional and only required if you want to watch Claude drive the
+TUI live in another terminal (`mode="tmux"` — see
+[`docs/workflow.md`](docs/workflow.md#watching-claude-drive-the-tui)).
 
 ## Subagents
 
@@ -103,7 +106,7 @@ prompts, and how they compose with the skills.
 - [x] Phase 3 — teatest harness + `tui_test_golden` + `tui_inspect_model`
 - [x] Phase 4 — Skills + plugin manifest
 - [x] Phase 5 — Reference subagents (`tui-designer`, `tui-tester`)
-- [ ] Phase 6 — tmux driver + `mode` parameter
+- [x] Phase 6 — tmux driver + `mode` parameter
 - [ ] Phase 7 — Release polish + v0.1.0
 
 Full plan: [`docs/plan.md`](docs/plan.md). Per-phase prompts:

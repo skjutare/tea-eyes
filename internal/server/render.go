@@ -54,6 +54,15 @@ func registerRenderImage(s *server.MCPServer, r *render.Renderer) {
 		mcp.WithBoolean("no_cache", mcp.Description("Bypass the render cache."),
 			mcp.DefaultBool(false)),
 		mcp.WithString("cwd", mcp.Description("Working directory for the spawned command.")),
+		mcp.WithString("mode",
+			mcp.Description(
+				"Capture backend. Only \"pty\" is supported for image rendering: "+
+					"VHS records its own pseudo-terminal. \"tmux\" returns a clear "+
+					"error explaining the limitation.",
+			),
+			mcp.DefaultString("pty"),
+			mcp.Enum("pty", "tmux"),
+		),
 	)
 	s.AddTool(tool, makeRenderImageHandler(r))
 }
@@ -65,6 +74,14 @@ func makeRenderImageHandler(r *render.Renderer) server.ToolHandlerFunc {
 		command, _ := args["command"].(string)
 		if command == "" {
 			return mcp.NewToolResultError("tui_render_image: 'command' is required"), nil
+		}
+		if modeStr, _ := args["mode"].(string); modeStr != "" && modeStr != "pty" {
+			return mcp.NewToolResultError(
+				"tui_render_image: mode=" + modeStr + " is not supported. VHS records " +
+					"its own pty internally; tmux mode is unavailable for image " +
+					"rendering in v1. Use tui_capture_text with mode=\"tmux\" for " +
+					"watchable sessions, or omit `mode` here.",
+			), nil
 		}
 		strArgs, err := stringSlice(args, "args")
 		if err != nil {

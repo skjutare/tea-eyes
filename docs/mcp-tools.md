@@ -8,7 +8,25 @@ Each tool is documented here as it lands.
 | `tui_render_image` | available | Phase 2 |
 | `tui_test_golden` | available | Phase 3 |
 | `tui_inspect_model` | available | Phase 3 |
-| `tui_session_attach_hint` | not yet | Phase 6 |
+| `tui_session_attach_hint` | available | Phase 6 |
+
+## Choosing a mode
+
+`tui_capture_text` and `tui_render_image` accept a `mode` parameter that
+selects the capture backend.
+
+| mode | tool support | when to pick it | tradeoffs |
+|------|--------------|-----------------|-----------|
+| `pty` (default) | `tui_capture_text`, `tui_render_image` | almost always | fast startup, no external deps, ephemeral — the user can't watch |
+| `tmux` | `tui_capture_text` only | when the user should watch Claude work live, or the TUI misbehaves under a plain pty | requires `tmux` on `PATH`; ~200ms slower per call; sessions can be left alive across calls |
+
+`tui_render_image` rejects `mode="tmux"` with an explanatory error — VHS
+records its own pty internally and tea-eyes does not bridge VHS to a tmux
+session in v1.
+
+`tui_test_golden` and `tui_inspect_model` reject the `mode` parameter
+entirely — they run the model in-process via teatest and never spawn a
+terminal.
 
 ---
 
@@ -31,6 +49,9 @@ so libraries like termenv don't block on startup.
 | `settle_ms` | int | no | `300` | Milliseconds to wait after spawn and between key sends. |
 | `strip_ansi` | bool | no | `true` | If `true`, return a clean text grid; if `false`, return raw bytes with SGR escapes intact. |
 | `cwd` | string | no | `""` | Working directory for the spawned command. |
+| `mode` | enum | no | `"pty"` | Capture backend: `"pty"` (ephemeral) or `"tmux"` (watchable session). |
+| `tmux_session` | string | no | `""` | tmux mode only. Existing session name to attach to; if empty, an ephemeral `teaeyes-<rand>` session is created. If the named session does not exist it is created. |
+| `tmux_persist` | bool | no | `false` | tmux mode only. Keep the session alive after the call so the user (or a follow-up call) can attach. When set, the structured result includes the session name in `tmux_session`. |
 
 Key specs follow jmlago's tmux skill notation:
 
@@ -49,9 +70,14 @@ Structured content:
   "text": "...",
   "width": 80,
   "height": 24,
-  "raw_bytes": 1234
+  "raw_bytes": 1234,
+  "mode": "pty",
+  "tmux_session": ""
 }
 ```
+
+`tmux_session` is non-empty only for `mode="tmux"` with `tmux_persist=true`
+(or when an existing session name was supplied).
 
 `raw_bytes` is the size of the unprocessed pty output (useful for sanity
 checks). Errors come back as MCP tool errors with actionable messages such as
@@ -275,3 +301,48 @@ export the field you care about.
   "final_output_preview": "…"
 }
 ```
+
+---
+
+## `tui_session_attach_hint`
+
+Return the shell command the user can run to attach to a persistent tmux
+session created by tea-eyes. Use this after a `tui_capture_text` call with
+`mode="tmux"` and `tmux_persist=true` to tell the user exactly how to watch.
+
+### Inputs
+
+| name | type | required | description |
+|------|------|----------|-------------|
+| `session_name` | string | yes | Name of the tmux session (returned in `tmux_session` from a persistent capture). |
+
+### Output
+
+```json
+{
+  "command": "tmux attach -t teaeyes-1f9c",
+  "exists": true
+}
+```
+
+`exists` reflects whether the session is currently live according to
+`tmux has-session`. If `false`, the command is still returned so the user
+sees what would have worked.
+
+### Example
+
+After Claude does:
+
+```json
+{
+  "command": "./bin/myapp",
+  "mode": "tmux",
+  "tmux_persist": true,
+  "width": 120,
+  "height": 40
+}
+```
+
+…and gets back `tmux_session: "teaeyes-1f9c"`, ask `tui_session_attach_hint`
+with `session_name: "teaeyes-1f9c"` and surface the returned command to the
+user verbatim.

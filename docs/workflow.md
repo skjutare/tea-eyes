@@ -59,3 +59,56 @@ A typical loop:
 rendered output, it dumps the exported fields of the final model so you can
 make claims about state transitions ("after pressing tab three times,
 `SelectedIndex` should be 2").
+
+## Watching Claude drive the TUI
+
+By default, `tui_capture_text` runs the TUI under a fresh pseudo-terminal
+that lives only for the duration of the call. You see the captured text;
+you do not see the TUI execute. For trust-building, debugging, or a
+demo-style workflow you can instead run the TUI inside a tmux session that
+you attach to in another terminal and watch live.
+
+The pattern is two MCP calls:
+
+1. `tui_capture_text` with `mode: "tmux"`, `tmux_persist: true`, and a
+   reasonable size. Claude gets the captured text *and* the structured
+   result includes `tmux_session` — the name of the session left running.
+2. `tui_session_attach_hint` with that session name. The tool returns the
+   exact shell command (`tmux attach -t teaeyes-…`). Claude surfaces it to
+   you.
+
+Worked example:
+
+```json
+// step 1: capture and keep the session alive
+{
+  "command": "./bin/myapp",
+  "mode": "tmux",
+  "tmux_persist": true,
+  "width": 120,
+  "height": 40
+}
+// -> result includes "tmux_session": "teaeyes-1f9c"
+
+// step 2: get the attach hint
+{ "session_name": "teaeyes-1f9c" }
+// -> "command": "tmux attach -t teaeyes-1f9c"
+```
+
+In your second terminal, run that command; the TUI is right there, in its
+last state. Subsequent `tui_capture_text` calls that pass the same
+`tmux_session` name reuse the session (tea-eyes `respawn-pane`s the
+command), so you can watch each step Claude takes.
+
+When you're done, detach with `Ctrl-b d` and kill the session with
+`tmux kill-session -t teaeyes-1f9c`.
+
+Caveats:
+
+- tmux mode is text-only — `tui_render_image` rejects `mode="tmux"` because
+  VHS records its own pty internally.
+- The session runs the binary directly, bypassing your login shell, so
+  slow rc files (e.g. oh-my-zsh) don't delay startup.
+- The captured text comes from `tmux capture-pane -e`, which preserves
+  ANSI escapes; `strip_ansi` defaults to `true` and works the same as in
+  pty mode.

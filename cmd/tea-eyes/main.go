@@ -82,25 +82,38 @@ func runServer(args []string) int {
 // hints. Returns the process exit code: 0 if all present, 1 if anything is
 // missing.
 func runDoctor() int {
-	checks := []struct {
-		name string
-		args []string
-		hint string
-	}{
-		{"vhs", []string{"--version"},
-			"install with `brew install vhs` or `go install github.com/charmbracelet/vhs@latest`"},
-		{"ttyd", []string{"--version"},
-			"install with `brew install ttyd` (required by vhs)"},
-		{"ffmpeg", []string{"-version"},
-			"install with `brew install ffmpeg` (required by vhs)"},
+	type check struct {
+		name     string
+		args     []string
+		hint     string
+		optional bool
 	}
-	missing := 0
+	checks := []check{
+		{"vhs", []string{"--version"},
+			"install with `brew install vhs` or `go install github.com/charmbracelet/vhs@latest`", false},
+		{"ttyd", []string{"--version"},
+			"install with `brew install ttyd` (required by vhs)", false},
+		{"ffmpeg", []string{"-version"},
+			"install with `brew install ffmpeg` (required by vhs)", false},
+		{"tmux", []string{"-V"},
+			"install with `brew install tmux` (optional — only required for mode=\"tmux\")", true},
+	}
+	missingRequired := 0
+	missingOptional := 0
 	fmt.Printf("tea-eyes %s — doctor\n\n", server.Version)
 	for _, c := range checks {
 		path, err := exec.LookPath(c.name)
 		if err != nil {
-			fmt.Printf("  ✗ %-8s not found on PATH\n      %s\n", c.name, c.hint)
-			missing++
+			tag := "✗"
+			label := "not found on PATH"
+			if c.optional {
+				tag = "•"
+				label = "not found on PATH (optional)"
+				missingOptional++
+			} else {
+				missingRequired++
+			}
+			fmt.Printf("  %s %-8s %s\n      %s\n", tag, c.name, label, c.hint)
 			continue
 		}
 		ver := firstLine(captureVersion(path, c.args))
@@ -108,14 +121,21 @@ func runDoctor() int {
 	}
 	cache := render.DefaultCacheDir()
 	fmt.Printf("\n  cache dir: %s\n", cache)
-	if missing > 0 {
+	if missingRequired > 0 {
 		fmt.Printf(
-			"\n%d external dependency(ies) missing. tui_render_image will fail until they are installed.\n",
-			missing,
+			"\n%d required dependency(ies) missing. tui_render_image will fail until they are installed.\n",
+			missingRequired,
 		)
 		return 1
 	}
-	fmt.Println("\nAll external dependencies present.")
+	if missingOptional > 0 {
+		fmt.Printf(
+			"\nAll required dependencies present. %d optional dependency(ies) missing — affected features noted above.\n",
+			missingOptional,
+		)
+		return 0
+	}
+	fmt.Println("\nAll dependencies present.")
 	return 0
 }
 

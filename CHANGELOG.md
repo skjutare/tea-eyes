@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `internal/tmux` package — tmux CLI wrapper supporting create/attach/kill
+  session, raw-byte key delivery via `send-keys -H`, `capture-pane -e`,
+  resize, and `respawn-pane` for reusing a persistent session across
+  successive calls (Phase 6).
+- `internal/driver` (`capturedrv`) package — backend-agnostic Driver
+  interface and `Mode` enum (`pty`, `tmux`) used by MCP tools. Pty stays
+  the default for backward compatibility (Phase 6).
+- `tui_capture_text` now accepts `mode`, `tmux_session`, and `tmux_persist`
+  parameters. The structured result echoes the chosen `mode` and, when
+  applicable, the `tmux_session` name so a follow-up call (or the user)
+  can attach (Phase 6).
+- `tui_session_attach_hint` MCP tool — returns the `tmux attach -t …`
+  command for a given session name, plus an `exists` flag (Phase 6).
+- `tui_render_image` accepts `mode` for parameter symmetry but rejects
+  `mode="tmux"` with an actionable error explaining the VHS/tmux gap.
+  `tui_test_golden` and `tui_inspect_model` reject `mode` entirely since
+  they run in-process via teatest (Phase 6).
+- `tea-eyes doctor` now reports tmux availability as an optional
+  dependency, distinguishing missing-required from missing-optional.
+- `docs/mcp-tools.md` gains a "Choosing a mode" section, the new
+  parameters on `tui_capture_text`, and a `tui_session_attach_hint`
+  reference. `docs/workflow.md` gains a "Watching Claude drive the TUI"
+  section with a worked example.
 - `plugin/agents/tui-designer.md` — reference subagent for iterating on
   the visual design of TUIs. Renders the TUI as an image, describes
   what it sees, proposes one focused change at a time, and verifies via
