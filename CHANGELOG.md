@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `tui_test_golden` MCP tool — drive a Bubble Tea model in-process via
+  teatest and compare its final output against a golden file (Phase 3).
+- `tui_inspect_model` MCP tool — drive a Bubble Tea model and return its
+  exported fields as JSON plus the current `View()` text (Phase 3).
+- `internal/teatest` package — generates a build-tagged `_test.go` harness
+  in the user's package, compiles it via `go test -c -tags teaeyes`, and
+  caches the resulting binary under `$XDG_CACHE_HOME/tea-eyes/teatest/`.
+- `examples/hello-tui/teaeyes.go` — exemplar `TeaEyesNewModel()` white-box
+  hook; `examples/hello-tui/teaeyes_test.go` — example of a hand-written
+  teatest golden test, runnable via `go test -tags teaeyes`.
+- `docs/white-box-pattern.md` — full explanation of the
+  `TeaEyesNewModel` convention.
 - `tui_render_image` MCP tool — render a TUI as PNG or GIF via Charm's VHS
   and return it as an MCP image content block (Phase 2).
 - `internal/render` package — tape-file generation, VHS subprocess

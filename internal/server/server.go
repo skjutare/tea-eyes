@@ -12,6 +12,7 @@ import (
 	"gitlab.com/skjutare/tea-eyes/internal/keys"
 	"gitlab.com/skjutare/tea-eyes/internal/pty"
 	"gitlab.com/skjutare/tea-eyes/internal/render"
+	"gitlab.com/skjutare/tea-eyes/internal/teatest"
 )
 
 // Version is the server version reported during MCP initialize. Overridable
@@ -43,6 +44,8 @@ func NewWithRenderer(r *render.Renderer) *server.MCPServer {
 	)
 	registerCaptureText(s, pty.New())
 	registerRenderImage(s, r)
+	registerTestGolden(s, teatest.NewDriver(""))
+	registerInspectModel(s, teatest.NewDriver(""))
 	return s
 }
 

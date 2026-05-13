@@ -12,8 +12,8 @@ import (
 )
 
 type model struct {
-	counter      int
-	showCounter  bool
+	Counter     int
+	ShowCounter bool
 }
 
 func (m model) Init() tea.Cmd { return nil }
@@ -25,9 +25,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case " ", "space":
-			m.showCounter = !m.showCounter
-			if m.showCounter {
-				m.counter++
+			m.ShowCounter = !m.ShowCounter
+			if m.ShowCounter {
+				m.Counter++
 			}
 			return m, nil
 		}
@@ -41,8 +41,8 @@ var borderStyle = lipgloss.NewStyle().
 
 func (m model) View() string {
 	body := "Hello, tea-eyes!"
-	if m.showCounter {
-		body += fmt.Sprintf("\nCounter: %d", m.counter)
+	if m.ShowCounter {
+		body += fmt.Sprintf("\nCounter: %d", m.Counter)
 	}
 	return borderStyle.Render(body) + "\n"
 }
