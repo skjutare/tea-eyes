@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-19
+
+Initial public release. Phases 0–7 of the master plan complete: MCP
+server with five tools, two reference subagents, two skills, full
+documentation, cross-platform release artifacts.
+
 ### Added
 
 - `docs/architecture.md` — full rewrite with a Mermaid component diagram,
